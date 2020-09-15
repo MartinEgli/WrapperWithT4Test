@@ -1,0 +1,128 @@
+﻿<#
+/* --------------------------------- SELECTORS --------------------------------- */
+
+var ctorInfos = targetType.GetConstructors(BindingFlags.Instance|BindingFlags.Public|BindingFlags.DeclaredOnly);
+var eventInfos = targetType.GetEvents(BindingFlags.Instance|BindingFlags.Public|BindingFlags.DeclaredOnly);
+var propertyInfos = targetType.GetProperties(BindingFlags.Instance|BindingFlags.Public|BindingFlags.DeclaredOnly);
+var methodInfos = targetType.GetMethods(BindingFlags.Instance|BindingFlags.Public|BindingFlags.DeclaredOnly).Where(m => !m.IsSpecialName).ToArray();
+var interfaces = targetType.GetInterfaces();
+var ifaceEvents = new Func<Type, EventInfo[]>(i => i.GetEvents(BindingFlags.Instance|BindingFlags.Public|BindingFlags.DeclaredOnly));
+var ifaceProperties = new Func<Type, PropertyInfo[]>(i => i.GetProperties(BindingFlags.Instance|BindingFlags.Public|BindingFlags.DeclaredOnly));
+var ifaceMethods = new Func<Type, MethodInfo[]>(i => i.GetMethods(BindingFlags.Instance|BindingFlags.Public|BindingFlags.DeclaredOnly).Where(m => !m.IsSpecialName).ToArray());
+
+/* ---------------------------------- HELPERS ---------------------------------- */
+
+var isVoid = new Func<Type, bool>(t => Object.ReferenceEquals(t, typeof(void)));
+var canonicalNamePattern = new Regex(@"^([^`]+)`?.*$", RegexOptions.Compiled|RegexOptions.IgnoreCase);
+var getCanonicalName = new Func<Type, string>(t => canonicalNamePattern.Match(t.FullName).Groups[1].Value);
+var proxyTypeShortName = getCanonicalName(targetType).Split('.').Last() + targetProxySuffix;
+
+/* ---------------------------------- WRITERS ----------------------------------- */
+Func<Type, string> writeGeneric = null;
+Func<Type, string> writeArray = null;
+Func<Type, string> writeType = null;
+Func<object, string> writeUnsafe = null;
+Func<MethodInfo, string, string> writeMethod = null;
+Func<ParameterInfo, string> getArgPrefix = null;
+Func<ParameterInfo, string> writeParamType = null; 
+Func<ParameterInfo, string> writeParamName = null; 
+
+
+writeGeneric = new Func<Type, string>(t => {
+	var typeRep = getCanonicalName(t) + "<";                
+	for (var i = 0; i < t.GenericTypeArguments.Length; i++)
+	{
+		typeRep += writeType(t.GenericTypeArguments[i]);
+		typeRep += i < t.GenericTypeArguments.Length - 1 ? ", " : String.Empty;
+	}
+	typeRep += ">";
+	return typeRep;
+});
+
+writeArray = new Func<Type, string>(t => {
+	var type = t;
+	var depth = 1;
+	while ((type = type.GetElementType()) != null && type.IsArray) depth++;
+			
+	var typeRep = writeType(type);
+
+	while (depth-- > 0) typeRep += "[]";
+	return typeRep;
+});
+
+writeType = new Func<Type, string>(t => {
+	var typeRep = String.Empty;
+
+	if (isVoid(t)) 
+		typeRep = "void";
+			
+	else if (t.IsArray)
+		typeRep = writeArray(t);
+
+	else if (t.IsGenericType) 
+		typeRep = writeGeneric(t);			
+
+	else
+		typeRep = t.FullName;
+
+	if (t.IsNested)
+		typeRep += "." + t.Name;
+
+	return typeRep;
+});
+
+writeUnsafe = new Func<object, string>(o => {			
+	var usafe = false;
+	if (o is ConstructorInfo)	
+		usafe = ((ConstructorInfo)o).GetParameters().Any(p => p.ParameterType.IsPointer);	
+
+	else if (o is PropertyInfo)
+		usafe = ((PropertyInfo)o).PropertyType.IsPointer;
+		
+	else if (o is MethodInfo)
+		usafe = ((MethodInfo)o).GetParameters().Any(p => p.ParameterType.IsPointer) ||
+				((MethodInfo)o).ReturnType.IsPointer;	
+	
+	return usafe ? "unsafe " : String.Empty;
+});
+
+writeMethod = new Func<MethodInfo, string, string>((m, source) => {		
+	var returns = (!isVoid(m.ReturnParameter.ParameterType) ? "return " : String.Empty);	
+	var methodRep = String.Format("{0}{1}.{2}", returns, source, m.Name);
+	return methodRep;
+});
+
+getArgPrefix = new Func<ParameterInfo, string>(p => { 
+	if (p.ParameterType.IsByRef && p.IsOut)
+		return "out ";
+	if (p.ParameterType.IsByRef)
+		return "ref ";
+	 return String.Empty;
+});
+
+writeParamType = new Func<ParameterInfo, string>(p => {		
+	var prefix = String.Empty;	
+	var type = p.ParameterType;
+	var isParams = CustomAttributeData.GetCustomAttributes(p).Any(a => a is ParamArrayAttribute);
+	
+	if (isParams)
+	{
+		prefix = "params ";
+	}
+	else if ((prefix = getArgPrefix(p)).Length > 0)
+	{
+		type = type.GetElementType();
+	}
+
+	var parRep = prefix + writeType(type);
+	return parRep;
+});
+
+writeParamName = new Func<ParameterInfo, string>(p => {
+	var prefix = getArgPrefix(p);
+	var argRep = prefix + p.Name;
+	return argRep;
+});
+
+
+#>

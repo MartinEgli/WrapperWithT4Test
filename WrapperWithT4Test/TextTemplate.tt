@@ -3,7 +3,7 @@
 <#@ assembly name="System.Core" #>
 <#@ assembly name="System.Data" #>
 <#@ assembly name="System" #>
-<#@ assembly name="C:\Users\Martin\Source\Repos\WrapperWithT4Test\WrapperWithT4Test\Siemens.Sinumerik.Operate.Services.dll" #>
+<#@ assembly name="$(ProjectDir)\Siemens.Sinumerik.Operate.Services.dll" #>
 <#@ import namespace="System" #>
 <#@ import namespace="System.Linq" #>
 <#@ import namespace="System.Text" #>
@@ -41,16 +41,21 @@ var proxyTypeShortName = getCanonicalName(targetType).Split('.').Last() + target
 Func<Type, string> writeGeneric = null;
 Func<Type, string> writeArray = null;
 Func<Type, string> writeType = null;
+Func<object, string> writeUnsafe = null;
+Func<MethodInfo, string, string> writeMethod = null;
+Func<ParameterInfo, string> getArgPrefix = null;
+Func<ParameterInfo, string> writeParamType = null; 
+Func<ParameterInfo, string> writeParamName = null; 
 
 writeGeneric = new Func<Type, string>(t => {
-    var typeRep = getCanonicalName(t) + "<";                
-    for (var i = 0; i < t.GenericTypeArguments.Length; i++)
-    {
-        typeRep += writeType(t.GenericTypeArguments[i]);
-        typeRep += i < t.GenericTypeArguments.Length - 1 ? ", " : String.Empty;
-    }
-    typeRep += ">";
-    return typeRep;
+	var typeRep = getCanonicalName(t) + "<";                
+	for (var i = 0; i < t.GenericTypeArguments.Length; i++)
+	{
+		typeRep += writeType(t.GenericTypeArguments[i]);
+		typeRep += i < t.GenericTypeArguments.Length - 1 ? ", " : String.Empty;
+	}
+	typeRep += ">";
+	return typeRep;
 });
 
 writeArray = new Func<Type, string>(t => {
@@ -85,7 +90,7 @@ writeType = new Func<Type, string>(t => {
 	return typeRep;
 });
 
-var writeUnsafe = new Func<object, string>(o => {			
+writeUnsafe = new Func<object, string>(o => {			
 	var usafe = false;
 	if (o is ConstructorInfo)	
 		usafe = ((ConstructorInfo)o).GetParameters().Any(p => p.ParameterType.IsPointer);	
@@ -100,21 +105,21 @@ var writeUnsafe = new Func<object, string>(o => {
 	return usafe ? "unsafe " : String.Empty;
 });
 
-var writeMethod = new Func<MethodInfo, string, string>((m, source) => {		
+writeMethod = new Func<MethodInfo, string, string>((m, source) => {		
 	var returns = (!isVoid(m.ReturnParameter.ParameterType) ? "return " : String.Empty);	
 	var methodRep = String.Format("{0}{1}.{2}", returns, source, m.Name);
 	return methodRep;
 });
 
-var getArgPrefix = new Func<ParameterInfo, string>(p => { 
-    if (p.ParameterType.IsByRef && p.IsOut)
+getArgPrefix = new Func<ParameterInfo, string>(p => { 
+	if (p.ParameterType.IsByRef && p.IsOut)
 		return "out ";
 	if (p.ParameterType.IsByRef)
 		return "ref ";
 	 return String.Empty;
 });
 
-var writeParamType = new Func<ParameterInfo, string>(p => {		
+writeParamType = new Func<ParameterInfo, string>(p => {		
 	var prefix = String.Empty;	
 	var type = p.ParameterType;
 	var isParams = p.GetCustomAttributes(typeof(ParamArrayAttribute), false).Length > 0;
@@ -132,7 +137,7 @@ var writeParamType = new Func<ParameterInfo, string>(p => {
 	return parRep;
 });
 
-var writeParamName = new Func<ParameterInfo, string>(p => {
+writeParamName = new Func<ParameterInfo, string>(p => {
 	var prefix = getArgPrefix(p);
 	var argRep = prefix + p.Name;
 	return argRep;
@@ -283,6 +288,10 @@ namespace <#=targetProxyNamespace#>
 	public interface I<#=proxyTypeShortName#>Factory
 	{
 		I<#=proxyTypeShortName#> Create(params object[] args);
+<#foreach(var ctorInfo in ctorInfos) {#>
+	<#var args = ctorInfo.GetParameters();#>
+	I<#=proxyTypeShortName#> Create(<#=String.Join(", ",args.Select(a => String.Format("{0} {1}", writeType(a.ParameterType), a.Name)))#>);
+<#}#>
 	}
 
 	public class <#=proxyTypeShortName#>Factory : I<#=proxyTypeShortName#>Factory
@@ -291,5 +300,14 @@ namespace <#=targetProxyNamespace#>
 		{
 			return (I<#=proxyTypeShortName#>)System.Activator.CreateInstance(typeof(<#=proxyTypeShortName#>), args);
 		}
+
+<#foreach(var ctorInfo in ctorInfos) {#>
+	<#var args = ctorInfo.GetParameters();#>
+	public virtual I<#=proxyTypeShortName#> Create(<#=String.Join(", ",args.Select(a => String.Format("{0} {1}", writeType(a.ParameterType), a.Name)))#>)
+		{
+			return new <#=proxyTypeShortName#>(<#=String.Join(", ",args.Select(a => String.Format("{0}", a.Name)))#>); 
+		}
+
+<#}#>
 	}
 }

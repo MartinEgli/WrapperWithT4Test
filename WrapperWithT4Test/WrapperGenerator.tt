@@ -1,0 +1,43 @@
+﻿<#@ template debug="true" hostspecific="true" language="C#" #>
+<#@ include file="T4Scripts\Manager.t4" #>
+<#@ output extension=".cs" #>
+<#@ assembly name="System.Core" #>
+<#@ assembly name="System.Data" #>
+<#@ assembly name="System" #>
+<#@ assembly name="System.IO" #>
+<#@ import namespace="System" #>
+<#@ import namespace="System.IO" #>
+<#@ assembly name="EnvDTE" #>
+<#@ import namespace="EnvDTE" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Text.RegularExpressions" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.Reflection" #>
+<# var manager = new Manager(Host, GenerationEnvironment, true) { OutputPath = Path.GetDirectoryName(Host.TemplateFile) }; #>
+<# manager.StartBlock("Wrapper.generated.cs"); #>
+<#
+/* ----------------------------------- NAMES ----------------------------------- */
+var path = Path.GetDirectoryName(this.Host.TemplateFile);
+
+var assembly1 = Assembly.ReflectionOnlyLoadFrom(path + @"\Siemens.Sinumerik.Operate.Services.Wrapper.dll");
+foreach (var type in assembly1.GetTypes().Where(t => t.IsPublic && !t.IsSealed))
+{
+#><#
+}
+var assembly2 = Assembly.ReflectionOnlyLoadFrom(path + @"\Siemens.Sinumerik.Operate.Services.dll");
+foreach (var type in assembly2.GetTypes().Where(t => t.IsPublic && !t.IsSealed))
+{
+#>
+<#
+}
+var targetType = assembly2.GetType("Siemens.Sinumerik.Operate.Services.AlarmSvc");
+var targetProxyNamespace = (targetType.Namespace + ".Proxies");
+//var targetProxySuffix = "Proxy";
+var targetProxySuffix = "";
+var wrappedInstance = "_inner";
+#>
+<#@ include file="T4Scripts\ElementCreatorHelper.t4" #>
+<#@ include file="T4Scripts\WrapperHelper.t4" #>
+<# manager.EndBlock(); #>
+<# manager.Process(true); #>
