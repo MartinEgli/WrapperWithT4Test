@@ -21,14 +21,18 @@
 var path = Path.GetDirectoryName(this.Host.TemplateFile);
 
 var assembly1 = Assembly.ReflectionOnlyLoadFrom(path + @"\Siemens.Sinumerik.Operate.Services.Wrapper.dll");
-foreach (var type in assembly1.GetTypes().Where(t => t.IsPublic && !t.IsSealed))
-{
-#><#
-}
-var assembly2 = Assembly.ReflectionOnlyLoadFrom(path + @"\Siemens.Sinumerik.Operate.Services.dll");
-foreach (var type in assembly2.GetTypes().Where(t => t.IsPublic && !t.IsSealed))
+foreach (var type in assembly1.GetTypes().Where(t => t.IsInterface))
 {
 #>
+<#=type #>
+<#
+
+}
+var assembly2 = Assembly.ReflectionOnlyLoadFrom(path + @"\Siemens.Sinumerik.Operate.Services.dll");
+foreach (var type in assembly2.GetTypes().Where(t => t.IsInterface))
+{
+#>
+<#=type #>
 <#
 }
 var targetType = assembly2.GetType("Siemens.Sinumerik.Operate.Services.AlarmSvc");

@@ -8,20 +8,32 @@
 
   <ItemGroup>
     <None Remove="T4Scripts\ElementCreatorHelper.t4" />
+    <None Remove="T4Scripts\EnumWrapperHelper.t4" />
+    <None Remove="T4Scripts\InterfaceWrapperHelper.t4" />
     <None Remove="T4Scripts\Manager.t4" />
     <None Remove="T4Scripts\WrapperHelper.t4" />
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="T4Scripts\EnumWrapperHelper.t4">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="T4Scripts\Manager.t4">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="T4Scripts\ElementCreatorHelper.t4">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="T4Scripts\InterfaceWrapperHelper.t4">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="T4Scripts\WrapperHelper.t4">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TestLibrary\TestLibrary.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -34,13 +46,17 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="TestWrapperGenerator.tt">
+      <LastGenOutput>TestWrapperGenerator.cs</LastGenOutput>
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
     <None Update="WrapperGenerator.tt">
-      <LastGenOutput>WrapperGenerator.cs</LastGenOutput>
+      <LastGenOutput>TestWrapperGenerator.cs</LastGenOutput>
       <Generator>TextTemplatingFileGenerator</Generator>
     </None>
     <None Update="TextTemplate.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>TextTemplate2.cs</LastGenOutput>
+      <LastGenOutput>TextTemplate.cs</LastGenOutput>
     </None>
   </ItemGroup>
 
@@ -49,10 +65,20 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="WrapperGenerator.cs">
+    <Compile Update="TestWrapperGenerator.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
+      <DependentUpon>TestWrapperGenerator.tt</DependentUpon>
+    </Compile>
+    <Compile Update="TextTemplate.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>TextTemplate.tt</DependentUpon>
+    </Compile>
+    <Compile Update="WrapperGenerator - Copy.cs">
       <DependentUpon>WrapperGenerator.tt</DependentUpon>
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
     </Compile>
   </ItemGroup>
 </Project>

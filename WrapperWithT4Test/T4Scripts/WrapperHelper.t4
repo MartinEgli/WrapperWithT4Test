@@ -4,15 +4,17 @@
 
 namespace <#=targetProxyNamespace#>
 {
-	public class <#=proxyTypeShortName#> : <#=String.Join(", ", new []{"I" + proxyTypeShortName}.Union(interfaces.Select(i => writeType(i))))#>
+	public class <#=proxyTypeShortName#> : <# if (baseClass != null) { #><#=writeWrapperType(baseClass)#>,<#} #> <#=String.Join(", ", new []{"I" + proxyTypeShortName}.Union(interfaces.Select(i => writeWrapperType(i))))#>
 	{
-		protected <#=writeType(targetType)#> <#=wrappedInstance#>;
+		//private <#=writeType(targetType)#> <#=wrappedInstance#>;
+
+		internal <#=writeType(targetType)#> <#=wrappedInstance#> { get; }
 
 <#if (ctorInfos.Any()) {#>
 		#region Constructors
 <#	foreach(var ctorInfo in ctorInfos) { #>
 <#		var args = ctorInfo.GetParameters();#>
-		public <#=writeUnsafe(ctorInfo)#><#=proxyTypeShortName#>(<#=String.Join(", ", args.Select(a => String.Format("{0} {1}", writeType(a.ParameterType), a.Name)))#>)
+		public <#=writeUnsafe(ctorInfo)#><#=proxyTypeShortName#>(<#=String.Join(", ", args.Select(a => String.Format("{0} {1}", writeWrapperType(a.ParameterType), a.Name)))#>)
 		{
 			<#=wrappedInstance#> = new <#=writeType(targetType)#>(<#=String.Join(", ", args.Select(a => writeParamName(a)))#>);
 <#		foreach(var eventInfo in eventInfos) {
@@ -65,10 +67,9 @@ namespace <#=targetProxyNamespace#>
 		#region Methods
 <#	foreach(var methodInfo in methodInfos) {#>
 <#		var args = methodInfo.GetParameters();#>
-		public virtual <#=writeUnsafe(methodInfo)#><#=writeType(methodInfo.ReturnParameter.ParameterType)#> <#=methodInfo.Name#>(<#=String.Join(", ",
-			args.Select(a => String.Format("{0} {1}", writeParamType(a), a.Name)))#>)
+		public virtual <#=writeMethodSignature(methodInfo)#>
 		{
-			<#=writeMethod(methodInfo, wrappedInstance)#>(<#=String.Join(", ", args.Select(a => writeParamName(a)))#>);
+			<#=writeMethod(methodInfo, wrappedInstance)#>
 		}
 <#	}#>
 		#endregion
@@ -76,10 +77,11 @@ namespace <#=targetProxyNamespace#>
 
 <#if (interfaces.Any()) {#>
 <#	foreach (var iface in interfaces) {#>
-<#		var iName = writeType(iface);#>
-		#region <#=iName#> Members
+<#		var iName = writeType(iface);
+		var iWrapperName = writeWrapperType(iface);#>
+		#region <#=iWrapperName#> Members
 <#		foreach(var eventInfo in ifaceEvents(iface)) {#>
-		event <#=writeType(eventInfo.EventHandlerType)#> <#=iName#>.<#=eventInfo.Name#>
+		event <#=writeType(eventInfo.EventHandlerType)#> <#=iWrapperName#>.<#=eventInfo.Name#>
 		{
 			add { ((<#=iName#>)<#=wrappedInstance#>).<#=eventInfo.Name#> += value; }
 			remove { ((<#=iName#>)<#=wrappedInstance#>).<#=eventInfo.Name#> -= value; }
@@ -88,7 +90,7 @@ namespace <#=targetProxyNamespace#>
 <#	foreach(var propInfo in ifaceProperties(iface)) {#>
 <#		var indexers = propInfo.GetIndexParameters();#>
 <#		if (indexers.Length > 0) {#>			
-		<#=writeUnsafe(propInfo)#><#=writeType(propInfo.PropertyType)#> <#=iName#>.<#=String.Format("this[{0}]", 
+		<#=writeUnsafe(propInfo)#><#=writeType(propInfo.PropertyType)#> <#=iWrapperName#>.<#=String.Format("this[{0}]", 
 			String.Join(", ", indexers.Select(i => String.Format("{0} {1}", writeType(i.ParameterType), i.Name))))#>
 		{
 <#			var indexes = String.Join(", ", indexers.Select(i => i.Name));#>
@@ -96,31 +98,34 @@ namespace <#=targetProxyNamespace#>
 			get { return ((<#=iName#>)<#=wrappedInstance#>)[<#=indexes#>]; }<#}#>
 <#				var m = propInfo.GetSetMethod();
 				if(m != null && m.IsPublic) {#>
+
 			set { ((<#=iName#>)<#=wrappedInstance#>)[<#=indexes#>] = value; }<#}#>
 		}
 <#		} else {#>
-		<#=writeUnsafe(propInfo)#><#=writeType(propInfo.PropertyType)#> <#=iName#>.<#=propInfo.Name#>
+		<#=writeUnsafe(propInfo)#><#=writeType(propInfo.PropertyType)#> <#=iWrapperName#>.<#=propInfo.Name#>
 		{
 <#			if (propInfo.CanRead) {#>
 			get { return ((<#=iName#>)<#=wrappedInstance#>).<#=propInfo.Name#>; }<#}#>
 <#				var m = propInfo.GetSetMethod();
 				if(m != null && m.IsPublic){#>
+
 			set { ((<#=iName#>)<#=wrappedInstance#>).<#=propInfo.Name#> = value; }<#}#>
+
 		}
 <#			}#>
 <#		}#>
 <#		foreach(var methodInfo in ifaceMethods(iface)) {#>
 <#			var args = methodInfo.GetParameters();#>
-		<#=writeUnsafe(methodInfo)#><#=writeType(methodInfo.ReturnParameter.ParameterType)#> <#=iName#>.<#=methodInfo.Name#>(<#=String.Join(", ",
+		<#=writeUnsafe(methodInfo)#><#=writeType(methodInfo.ReturnParameter.ParameterType)#> <#=iWrapperName#>.<#=methodInfo.Name#>(<#=String.Join(", ",
 			args.Select(a => String.Format("{0} {1}", writeParamType(a), a.Name)))#>)
 		{
-			<#=writeMethod(methodInfo, String.Format("(({0}){1})", iName, wrappedInstance))#>(<#=String.Join(", ", args.Select(a => writeParamName(a)))#>);
+			<#=writeMethod(methodInfo, String.Format("(({0}){1})", iName, wrappedInstance))#>
 		}
 <#		}#>
 		#endregion
-<#	}#>
+<#	}
+}#>
 	}
-<#}#>
 
 	public interface I<#=proxyTypeShortName#>
 	{
@@ -137,22 +142,14 @@ namespace <#=targetProxyNamespace#>
 <#		var indexers = propInfo.GetIndexParameters();#>
 <#		if (indexers.Any()) {#>			
 		<#=writeUnsafe(propInfo)#><#=writeType(propInfo.PropertyType)#> <#=String.Format("this[{0}]", String.Join(", ", indexers.Select(i => String.Format("{0} {1}", writeType(i.ParameterType), i.Name))))#>
-<#		} else {#>				
-		<#=writeUnsafe(propInfo)#><#=writeType(propInfo.PropertyType)#> <#=propInfo.Name#>
-<#		}#>
-		{
-<#		if (propInfo.CanRead) {#>
-			get;
-<#		}
-		var m = propInfo.GetSetMethod();
-		if(m != null && m.IsPublic) {#>
-			set;
-<#		}#>				
-		}
+<#		} else {#> <#=writeUnsafe(propInfo)
+#>		<#=writeType(propInfo.PropertyType)#> <#=propInfo.Name#> <#}#>{<#
+		if (propInfo.CanRead) {#> get;<#}#><#
+			var m = propInfo.GetSetMethod();
+		if(m != null && m.IsPublic) {#> set;<#}#> }
 <#	}#>
 		#endregion
 <#}#>
-
 
 <#if (methodInfos.Any()) {#>
 		#region Methods
@@ -162,8 +159,8 @@ namespace <#=targetProxyNamespace#>
 			args.Select(a => String.Format("{0} {1}", writeParamType(a), a.Name)))#>);			
 <#	}#>
 		#endregion
-	}
 <#}#>
+	}
 
 	public interface I<#=proxyTypeShortName#>Factory
 	{

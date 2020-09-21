@@ -1,0 +1,80 @@
+﻿<#@ template debug="true" hostspecific="true" language="C#" #>
+<#@ include file="T4Scripts\Manager.t4" #>
+<#@ output extension=".cs" #>
+<#@ assembly name="System.Core" #>
+<#@ assembly name="System.Data" #>
+<#@ assembly name="System" #>
+<#@ assembly name="System.IO" #>
+<#@ import namespace="System" #>
+<#@ import namespace="System.IO" #>
+<#@ assembly name="EnvDTE" #>
+<#@ import namespace="EnvDTE" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Text.RegularExpressions" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.Reflection" #>
+
+
+
+<# 
+//var targetType = assembly.GetType("Siemens.Sinumerik.Operate.Services.AlarmSvc");
+
+//var targetProxySuffix = "Proxy";
+var targetProxySuffix = "Wrapper";
+var wrappedInstance = "Inner";
+var manager = new Manager(Host, GenerationEnvironment, true) { OutputPath = Path.GetDirectoryName(Host.TemplateFile) }; #>
+<# manager.StartBlock("TestWrapper.generated.cs"); #>
+<#
+/* ----------------------------------- NAMES ----------------------------------- */
+var path = Path.GetDirectoryName(this.Host.TemplateFile);
+
+var assembly = Assembly.ReflectionOnlyLoadFrom(@"D:\Git\WrapperWithT4Test\TestLibrary\bin\Debug\net48\TestLibrary.dll");
+var sourceTypes = assembly.GetTypes(); #>
+<#@ include file="T4Scripts\ElementCreatorHelper.t4" #>
+<#
+
+
+
+
+var targetProxyNamespace = (sourceTypes.First().Namespace + ".Proxies");
+foreach (var targetType in sourceTypes)
+{
+	typeMapDictionary.Add(targetType, getProxyTypeShortName(targetType));				
+}
+
+foreach (var targetType in sourceTypes)
+{
+#>
+// <#=targetType #>
+<#
+
+
+
+/* --------------------------------- SELECTORS --------------------------------- */
+var proxyTypeShortName = getProxyTypeShortName(targetType);
+var ctorInfos = targetType.GetConstructors(BindingFlags.Instance|BindingFlags.Public|BindingFlags.DeclaredOnly);
+var eventInfos = targetType.GetEvents(BindingFlags.Instance|BindingFlags.Public|BindingFlags.DeclaredOnly);
+var propertyInfos = targetType.GetProperties(BindingFlags.Instance|BindingFlags.Public|BindingFlags.DeclaredOnly);
+var methodInfos = targetType.GetMethods(BindingFlags.Instance|BindingFlags.Public|BindingFlags.DeclaredOnly).Where(m => !m.IsSpecialName).ToArray();
+var interfaces = targetType.GetInterfaces();
+var baseClass = targetType.BaseType;
+var ifaceEvents = new Func<Type, EventInfo[]>(i => i.GetEvents(BindingFlags.Instance|BindingFlags.Public|BindingFlags.DeclaredOnly));
+var ifaceProperties = new Func<Type, PropertyInfo[]>(i => i.GetProperties(BindingFlags.Instance|BindingFlags.Public|BindingFlags.DeclaredOnly));
+var ifaceMethods = new Func<Type, MethodInfo[]>(i => i.GetMethods(BindingFlags.Instance|BindingFlags.Public|BindingFlags.DeclaredOnly).Where(m => !m.IsSpecialName).ToArray());
+#>
+<#	if (targetType.IsInterface)
+	{#>
+<#@ include file="T4Scripts\InterfaceWrapperHelper.t4" #>
+<#	}
+	else if(targetType.IsEnum)
+		{#>
+<#@ include file="T4Scripts\EnumWrapperHelper.t4" #>
+<#	}
+	else
+	{#>
+<#@ include file="T4Scripts\WrapperHelper.t4" #>
+<#	}#>
+<#}#>		
+<# manager.EndBlock(); #>
+<# manager.Process(true); #>
