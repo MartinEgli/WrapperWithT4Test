@@ -22,6 +22,10 @@ namespace TestLibrary
 
     public class Class : AbstractClass , Interface1
     {
+        public static void StaticMethod1()
+        {
+        }
+
         /// <summary>
         /// Method1s this instance.
         /// </summary>
@@ -68,4 +72,9 @@ namespace TestLibrary
     }
 
     public sealed class SealedClass : Class{}
+
+    public static class Helper
+    {
+        public static void Helper1(){}
+    }
 }

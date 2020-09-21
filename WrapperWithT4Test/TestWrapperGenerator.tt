@@ -53,11 +53,17 @@ foreach (var targetType in sourceTypes)
 
 /* --------------------------------- SELECTORS --------------------------------- */
 var proxyTypeShortName = getProxyTypeShortName(targetType);
+
 var ctorInfos = targetType.GetConstructors(BindingFlags.Instance|BindingFlags.Public|BindingFlags.DeclaredOnly);
 var eventInfos = targetType.GetEvents(BindingFlags.Instance|BindingFlags.Public|BindingFlags.DeclaredOnly);
 var propertyInfos = targetType.GetProperties(BindingFlags.Instance|BindingFlags.Public|BindingFlags.DeclaredOnly);
 var methodInfos = targetType.GetMethods(BindingFlags.Instance|BindingFlags.Public|BindingFlags.DeclaredOnly).Where(m => !m.IsSpecialName).ToArray();
-var interfaces = targetType.GetInterfaces();
+
+var staticEventInfos = targetType.GetEvents(BindingFlags.Static|BindingFlags.Public|BindingFlags.DeclaredOnly).Where(m => !m.IsSpecialName).ToArray();
+var staticPropertyInfos = targetType.GetProperties(BindingFlags.Static|BindingFlags.Public|BindingFlags.DeclaredOnly).Where(m => !m.IsSpecialName).ToArray();
+var staticMethodInfos = targetType.GetMethods(BindingFlags.Static|BindingFlags.Public|BindingFlags.DeclaredOnly).Where(m => !m.IsSpecialName).ToArray();
+
+var interfaces = filterInterfaces(targetType.GetInterfaces());
 var baseClass = targetType.BaseType;
 var ifaceEvents = new Func<Type, EventInfo[]>(i => i.GetEvents(BindingFlags.Instance|BindingFlags.Public|BindingFlags.DeclaredOnly));
 var ifaceProperties = new Func<Type, PropertyInfo[]>(i => i.GetProperties(BindingFlags.Instance|BindingFlags.Public|BindingFlags.DeclaredOnly));

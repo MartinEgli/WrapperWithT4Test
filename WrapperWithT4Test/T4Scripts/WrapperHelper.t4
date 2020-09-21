@@ -63,6 +63,19 @@ namespace <#=targetProxyNamespace#>
 <#	}#>
 		#endregion
 <#}#>
+
+<#if (staticMethodInfos.Any()) {#>
+		#region Static Methods
+<#	foreach(var methodInfo in staticMethodInfos) {#>
+<#		var args = methodInfo.GetParameters();#>
+		public static <#=writeMethodSignature(methodInfo)#>
+		{
+			<#=writeStaticMethod(methodInfo, writeType(targetType))#>
+		}
+<#	}#>
+		#endregion
+<#}#>
+
 <#if (methodInfos.Any()) {#>
 		#region Methods
 <#	foreach(var methodInfo in methodInfos) {#>
@@ -170,6 +183,40 @@ namespace <#=targetProxyNamespace#>
 		I<#=proxyTypeShortName#> Create(<#=String.Join(", ",args.Select(a => String.Format("{0} {1}", writeType(a.ParameterType), a.Name)))#>);
 <#	}#>
 	}
+
+<#	if (staticEventInfos.Any() || staticPropertyInfos.Any() || staticMethodInfos.Any()) {#>
+	public interface IStatic<#=proxyTypeShortName#>
+	{
+<#		if (staticEventInfos.Any()) {#>
+		#region Events
+<#			foreach(var eventInfo in staticEventInfos) {#>
+		event <#=writeWrapperType(eventInfo.EventHandlerType)#> <#=eventInfo.Name#>;
+<#			}#>
+		#endregion
+<#		}#>
+<#		if (staticPropertyInfos.Any()) {#>
+		#region Properties
+<#			foreach(var propInfo in staticPropertyInfos) {#>
+<#				var indexers = propInfo.GetIndexParameters();#>
+<#				if (indexers.Length > 0) {#>
+		<#=writeInterfaceIndexer(propInfo)#>
+<#				}	
+				else {#>
+		<#=writeInterfaceProperty(propInfo)#>
+<#				}#>
+<#			}#>
+		#endregion
+<#		}#>
+<#		if (staticMethodInfos.Any()) 
+		{#>
+		#region Methods
+<#			foreach(var methodInfo in staticMethodInfos) {#>
+		<#=writeInterfaceMethod(methodInfo)#>
+<#			}#>
+		#endregion
+<#		}#>
+	}
+<#	}#>
 
 	public class <#=proxyTypeShortName#>Factory : I<#=proxyTypeShortName#>Factory
 	{

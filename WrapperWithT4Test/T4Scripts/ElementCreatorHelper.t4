@@ -20,6 +20,7 @@ Func<FieldInfo, bool> hasFieldAttributes = null;
 Func<Type, string> writeWrapperType = null;
 Func<object, string> writeUnsafe = null;
 Func<MethodInfo, string, string> writeMethod = null;
+Func<MethodInfo, string, string> writeStaticMethod = null;
 Func<ParameterInfo, string> getArgPrefix = null;
 Func<ParameterInfo, string> writeParamType = null; 
 Func<ParameterInfo, string> writeParamName = null; 
@@ -32,20 +33,20 @@ Func<MethodInfo, string> writeInterfaceMethod = null;
 Func<PropertyInfo, string> writeInterfaceProperty = null;
 Func<PropertyInfo, string> writeInterfaceIndexer = null; 
 Func<PropertyInfo, string> writeWrapperIndexer = null; 
-
+Func<IList<CustomAttributeData>, IList<CustomAttributeData>> filterAttributes = null;
+Func<Type[], Type[]> filterInterfaces = null;
+			   
 writeWrapperType = new Func<Type, string>(t => {
-	var typeRep = String.Empty;
+	var str = new StringBuilder();
 
 	if (isVoid(t)) 
-		typeRep = "void";
-
+		str.Append("void");
 	else if (typeMapDictionary.ContainsKey(t))
-		typeRep = typeMapDictionary[t];
-			
+		str.Append(typeMapDictionary[t]);
 	else 
-		typeRep = writeType(t);
+		str.Append(writeType(t));
 		
-	return typeRep;
+	return str.ToString();
 });
 
 writeGeneric = new Func<Type, string>(t => {
@@ -76,24 +77,57 @@ writeArray = new Func<Type, string>(t => {
 });
 
 writeType = new Func<Type, string>(t => {
-	var typeRep = String.Empty;
+	var str = new StringBuilder();
 
 	if (isVoid(t)) 
-		typeRep = "void";
-			
+		str.Append("void");
+	else if (t == typeof(bool))
+		str.Append("bool");
+	else if (t == typeof(string))
+		str.Append("string");
+	else if (t == typeof(int))
+		str.Append("int");
+	else if (t == typeof(long))
+		str.Append("long");
+	else if (t == typeof(short))
+		str.Append("short");
+	else if (t == typeof(float))
+		str.Append("float");
+	else if (t == typeof(double))
+		str.Append("double");
+	else if (t == typeof(uint))
+		str.Append("uint");
+	else if (t == typeof(ushort))
+		str.Append("ushort");
+	else if (t == typeof(ulong))
+		str.Append("ulong");
+	else if (t == typeof(byte))
+		str.Append("byte");
+	else if (t == typeof(char))
+		str.Append("char");
+	else if (t == typeof(decimal))
+		str.Append("decimal");
+	else if (t == typeof(Enum))
+		str.Append("enum");
+	else if (t == typeof(sbyte))
+		str.Append("sbyte");
+	//else if (t == typeof(struct))
+		//str.Append("struct");
+	else if (t == typeof(short))
+		str.Append("short");
 	else if (t.IsArray)
-		typeRep = writeArray(t);
-
+		str.Append(writeArray(t));
 	else if (t.IsGenericType) 
-		typeRep = writeGeneric(t);			
-
+		str.Append(writeGeneric(t));			
 	else
-		typeRep = t.FullName;
+		str.Append(t.FullName);
 
 	if (t.IsNested)
-		typeRep += "." + t.Name;
-
-	return typeRep;
+	{
+		str.Append(".");
+		str.Append(t.Name);
+	}
+	return str.ToString();
 });
 
 writeUnsafe = new Func<object, string>(o => {			
@@ -127,18 +161,35 @@ writeMethod = new Func<MethodInfo, string, string>((m, source) => {
 	return str.ToString();
 });
 
+writeStaticMethod = new Func<MethodInfo, string, string>((m, source) => {		
+	var str = new StringBuilder();
+	var parameters = m.GetParameters();
+	if (!isVoid(m.ReturnParameter.ParameterType)) 
+	{
+		str.Append("return ");
+	}
+	str.Append(source);
+	str.Append(".");
+	str.Append(m.Name);
+	str.Append("(");
+	str.Append(String.Join(", ", parameters.Select(a => writeParamName(a))));
+	str.Append(");");
+	return str.ToString();
+});
+
 getArgPrefix = new Func<ParameterInfo, string>(p => { 
 	if (p.ParameterType.IsByRef && p.IsOut)
 		return "out ";
 	if (p.ParameterType.IsByRef)
 		return "ref ";
-	 return String.Empty;
+	return String.Empty;
 });
 
 writeTypeAttributes = new Func<Type, string>(t => {
 	var attributes = CustomAttributeData.GetCustomAttributes(t);
-	if (attributes.Any()){
-		return String.Format("[{0}] ", String.Join(", ", attributes.Select(a => a.AttributeType.ToString())
+	var list = filterAttributes(attributes);
+	if (list.Any()){
+		return String.Format("[{0}] ", String.Join(", ", list.Select(a => a.AttributeType.ToString())
 						.Select(s => s.EndsWith("Attribute")?s.Substring(0, s.LastIndexOf("Attribute")):s)));
 	}
 	return "";
@@ -146,13 +197,15 @@ writeTypeAttributes = new Func<Type, string>(t => {
 
 hasTypeAttributes = new Func<Type, bool>(t => {
 	var attributes = CustomAttributeData.GetCustomAttributes(t);
-	return attributes.Any();
+	var list = filterAttributes(attributes);
+	return list.Any();
 });
 
 writeFieldAttributes = new Func<FieldInfo, string>(f => {
 	var attributes = CustomAttributeData.GetCustomAttributes(f);
-	if (attributes.Any()){
-		return String.Format("[{0}] ", String.Join(", ", attributes.Select(a => a.AttributeType.ToString())
+	var list = filterAttributes(attributes);
+	if (list.Any()){
+		return String.Format("[{0}] ", String.Join(", ", list.Select(a => a.AttributeType.ToString())
 						.Select(s => s.EndsWith("Attribute")?s.Substring(0, s.LastIndexOf("Attribute")):s)));
 	}
 	return "";
@@ -257,20 +310,34 @@ writeMethodeParameters = new Func<ParameterInfo[], string>(ps => {
 
 writeMethodeParameter = new Func<ParameterInfo, string>(p => {
 	var attributes = CustomAttributeData.GetCustomAttributes(p);
+	var list = filterAttributes(attributes);
 	var str = new StringBuilder();
 	str.Append(writeUnsafe(p));
-	str.Append(writeParameterAttributes(attributes.ToArray()));
+	str.Append(writeParameterAttributes(list.ToArray()));
 	str.Append(writeParamType(p));
 	str.Append(" ");
 	str.Append(p.Name);
+	if (p.IsOptional)
+	{
+		str.Append(" = ");
+		if (p.ParameterType == typeof(bool))
+		{
+			str.Append(p.DefaultValue.ToString().ToLower());
+		}
+		else
+		{
+			str.Append(p.DefaultValue);
+		}		
+	}
 	return str.ToString();
 });
 
 writeParameterAttributes = new Func<CustomAttributeData[], string>(attributes => {
 	var str = new StringBuilder();
-	if (attributes.Any()){
+	var list = filterAttributes(attributes);
+	if (list.Any()){
 		str.Append("[");
-		str.Append(String.Join(", ", attributes.Select(a => writeParameterAttribute(a))));
+		str.Append(String.Join(", ", list.Select(a => writeParameterAttribute(a))));
 		str.Append("] ");
 	}
 	return str.ToString();
@@ -293,9 +360,26 @@ writeParameterAttribute = new Func<CustomAttributeData, string>(a => {
 
 hasFieldAttributes = new Func<FieldInfo, bool>(f => {
 	var attributes = CustomAttributeData.GetCustomAttributes(f);
-	return attributes.Any();
+	var list = filterAttributes(attributes);
+	return list.Any();
 });
 	
+filterAttributes = new Func<IList<CustomAttributeData>, IList<CustomAttributeData>>(attributes => {
+	var list = attributes
+		.Where(a =>	!(a.AttributeType == typeof(System.Runtime.InteropServices.OptionalAttribute)))
+		.Where(a =>	!(a.AttributeType == typeof(System.Runtime.InteropServices.OutAttribute)))
+		.Where(a =>	!(a.AttributeType == typeof(System.Runtime.InteropServices._Attribute)))
+		.ToList();
+	return list;
+});
+
+filterInterfaces = new Func<Type[], Type[]>(attributes => {
+	var list = attributes
+		.Where(a =>	!(a == typeof(System.Runtime.InteropServices._Attribute)))
+		.ToArray();
+	return list;
+});
+
 
 writeParamType = new Func<ParameterInfo, string>(p => {		
 	var str = new StringBuilder();
@@ -306,11 +390,15 @@ writeParamType = new Func<ParameterInfo, string>(p => {
 	{
 		str.Append("params ");
 	}
-	else if ((prefix = getArgPrefix(p)).Length > 0)
-	{
-		type = type.GetElementType();
+	else {
+		var prefix = getArgPrefix(p);
+		if (prefix.Length > 0)
+		{
+			str.Append(prefix);
+			type = type.GetElementType();
+		}	
 	}
-
+		
 	str.Append(writeType(type));
 	return str.ToString();
 });

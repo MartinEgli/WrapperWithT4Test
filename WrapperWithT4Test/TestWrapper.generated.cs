@@ -11,7 +11,7 @@ namespace TestLibrary.Proxies
 	using System;
 
 	[System.Serializable, System.Flags] 
-	public enum EnumWrapper : System.Int32 
+	public enum EnumWrapper : int 
 	{
 		[System.Obsolete] 
 		Enum1 = 0,
@@ -81,6 +81,8 @@ namespace TestLibrary.Proxies
 
 
 
+
+
 	}
 
 	public interface IAbstractClassWrapper
@@ -92,6 +94,7 @@ namespace TestLibrary.Proxies
 	{
 		IAbstractClassWrapper Create(params object[] args);
 	}
+
 
 	public class AbstractClassWrapperFactory : IAbstractClassWrapperFactory
 	{
@@ -123,66 +126,78 @@ namespace TestLibrary.Proxies
 		#endregion
 
 		#region Properties
-		public virtual System.String ReadWrite
+		public virtual string ReadWrite
 		{
 			get { return Inner.ReadWrite; }			set { Inner.ReadWrite = value; }
 	
 		}
-		public virtual System.String Read
+		public virtual string Read
 		{
 			get { return Inner.Read; }	
 		}
-		public virtual System.String this[System.Int32 i, System.Int32 j]
+		public virtual string this[int i, int j]
 		{				
 			get { return Inner[i, j]; }			set{ Inner[i, j] = value; }		}
-		public virtual System.String this[System.Int32 i]
+		public virtual string this[int i]
 		{				
 			get { return Inner[i]; }			set{ Inner[i] = value; }		}
 		#endregion
+
+		#region Static Methods
+		public static void StaticMethod1()
+		{
+			TestLibrary.Class.StaticMethod1();
+		}
+		#endregion
+
 		#region Methods
 		public virtual void Method1()
 		{
 			Inner.Method1();
 		}
-		public virtual void Method2(System.String str)
+		public virtual void Method2(string str)
 		{
 			Inner.Method2(str);
 		}
-		public virtual void Method3(System.String str)
+		public virtual void Method3(string str)
 		{
 			Inner.Method3(str);
 		}
-		public virtual void Method4(ref System.String str)
+		public virtual void Method4(ref string str)
 		{
 			Inner.Method4(ref str);
 		}
-		public virtual void Method5([System.Runtime.InteropServices.Out, TestLibrary.Attribute] out System.String str)
+		public virtual void Method5([TestLibrary.Attribute] out string str)
 		{
 			Inner.Method5(out str);
 		}
-		public virtual void Method6(System.String str, [System.Runtime.InteropServices.Optional] System.Boolean isBool)
+		public virtual void Method6(string str, bool isBool = true)
 		{
 			Inner.Method6(str, isBool);
+		}
+		public virtual void Method7(string str, bool isBool = true)
+		{
+			Inner.Method7(str, isBool);
 		}
 		#endregion
 
 		#region Interface1Wrapper Members
 			
-		System.String Interface1Wrapper.this[System.Int32 i]
+		string Interface1Wrapper.this[int i]
 		{
 			get { return ((TestLibrary.Interface1)Inner)[i]; }
 			set { ((TestLibrary.Interface1)Inner)[i] = value; }		}
 			
-		System.String Interface1Wrapper.this[System.Int32 i, System.Int32 j]
+		string Interface1Wrapper.this[int i, int j]
 		{
 			get { return ((TestLibrary.Interface1)Inner)[i, j]; }
 			set { ((TestLibrary.Interface1)Inner)[i, j] = value; }		}
-		System.String Interface1Wrapper.ReadWrite
+		string Interface1Wrapper.ReadWrite
 		{
 			get { return ((TestLibrary.Interface1)Inner).ReadWrite; }
 			set { ((TestLibrary.Interface1)Inner).ReadWrite = value; }
 		}
-		System.String Interface1Wrapper.Read
+		string Interface1Wrapper.Read
 		{
 			get { return ((TestLibrary.Interface1)Inner).Read; }
 		}
@@ -190,21 +205,29 @@ namespace TestLibrary.Proxies
 		{
 			((TestLibrary.Interface1)Inner).Method1();
 		}
-		void Interface1Wrapper.Method2(System.String str)
+		void Interface1Wrapper.Method2(string str)
 		{
 			((TestLibrary.Interface1)Inner).Method2(str);
 		}
-		void Interface1Wrapper.Method3(System.String str)
+		void Interface1Wrapper.Method3(string str)
 		{
 			((TestLibrary.Interface1)Inner).Method3(str);
 		}
-		void Interface1Wrapper.Method4(ref System.String str)
+		void Interface1Wrapper.Method4(ref string str)
 		{
 			((TestLibrary.Interface1)Inner).Method4(ref str);
 		}
-		void Interface1Wrapper.Method5(out System.String str)
+		void Interface1Wrapper.Method5(out string str)
 		{
 			((TestLibrary.Interface1)Inner).Method5(out str);
+		}
+		void Interface1Wrapper.Method6(string str, bool isBool)
+		{
+			((TestLibrary.Interface1)Inner).Method6(str, isBool);
+		}
+		void Interface1Wrapper.Method7(string str, bool isBool)
+		{
+			((TestLibrary.Interface1)Inner).Method7(str, isBool);
 		}
 		#endregion
 	}
@@ -212,23 +235,24 @@ namespace TestLibrary.Proxies
 	public interface IClassWrapper
 	{
 		#region Properties
- 		System.String ReadWrite { get; set; }
- 		System.String Read { get; }
+ 		string ReadWrite { get; set; }
+ 		string Read { get; }
 			
-		System.String this[System.Int32 i, System.Int32 j]
+		string this[int i, int j]
 { get; set; }
 			
-		System.String this[System.Int32 i]
+		string this[int i]
 { get; set; }
 		#endregion
 
 		#region Methods
 		void Method1();			
-		void Method2(System.String str);			
-		void Method3(System.String str);			
-		void Method4(ref System.String str);			
-		void Method5(out System.String str);			
-		void Method6(System.String str, System.Boolean isBool);			
+		void Method2(string str);			
+		void Method3(string str);			
+		void Method4(ref string str);			
+		void Method5(out string str);			
+		void Method6(string str, bool isBool);			
+		void Method7(string str, bool isBool);			
 		#endregion
 	}
 
@@ -236,6 +260,13 @@ namespace TestLibrary.Proxies
 	{
 		IClassWrapper Create(params object[] args);
 		IClassWrapper Create();
+	}
+
+	public interface IStaticClassWrapper
+	{
+		#region Methods
+		void StaticMethod1();
+		#endregion
 	}
 
 	public class ClassWrapperFactory : IClassWrapperFactory
@@ -270,25 +301,23 @@ namespace TestLibrary.Proxies
 			Inner = new TestLibrary.SealedClass();
 		}
 		#endregion
-
-
+		
 		#region Interface1Wrapper Members
-			
-		System.String Interface1Wrapper.this[System.Int32 i]
+		string Interface1Wrapper.this[int i]
 		{
 			get { return ((TestLibrary.Interface1)Inner)[i]; }
 			set { ((TestLibrary.Interface1)Inner)[i] = value; }		}
 			
-		System.String Interface1Wrapper.this[System.Int32 i, System.Int32 j]
+		string Interface1Wrapper.this[int i, int j]
 		{
 			get { return ((TestLibrary.Interface1)Inner)[i, j]; }
 			set { ((TestLibrary.Interface1)Inner)[i, j] = value; }		}
-		System.String Interface1Wrapper.ReadWrite
+		string Interface1Wrapper.ReadWrite
 		{
 			get { return ((TestLibrary.Interface1)Inner).ReadWrite; }
 			set { ((TestLibrary.Interface1)Inner).ReadWrite = value; }
 		}
-		System.String Interface1Wrapper.Read
+		string Interface1Wrapper.Read
 		{
 			get { return ((TestLibrary.Interface1)Inner).Read; }
 		}
@@ -296,21 +325,29 @@ namespace TestLibrary.Proxies
 		{
 			((TestLibrary.Interface1)Inner).Method1();
 		}
-		void Interface1Wrapper.Method2(System.String str)
+		void Interface1Wrapper.Method2(string str)
 		{
 			((TestLibrary.Interface1)Inner).Method2(str);
 		}
-		void Interface1Wrapper.Method3(System.String str)
+		void Interface1Wrapper.Method3(string str)
 		{
 			((TestLibrary.Interface1)Inner).Method3(str);
 		}
-		void Interface1Wrapper.Method4(ref System.String str)
+		void Interface1Wrapper.Method4(ref string str)
 		{
 			((TestLibrary.Interface1)Inner).Method4(ref str);
 		}
-		void Interface1Wrapper.Method5(out System.String str)
+		void Interface1Wrapper.Method5(out string str)
 		{
 			((TestLibrary.Interface1)Inner).Method5(out str);
+		}
+		void Interface1Wrapper.Method6(string str, bool isBool)
+		{
+			((TestLibrary.Interface1)Inner).Method6(str, isBool);
+		}
+		void Interface1Wrapper.Method7(string str, bool isBool)
+		{
+			((TestLibrary.Interface1)Inner).Method7(str, isBool);
 		}
 		#endregion
 	}
@@ -326,6 +363,7 @@ namespace TestLibrary.Proxies
 		ISealedClassWrapper Create();
 	}
 
+
 	public class SealedClassWrapperFactory : ISealedClassWrapperFactory
 	{
 		public virtual ISealedClassWrapper Create(params object[] args)
@@ -339,6 +377,57 @@ namespace TestLibrary.Proxies
 		}
 	}
 }
+// TestLibrary.Helper
+/* ---------------------------------------------------------------------------- *
+ *		The code is generated by 'T4Wrap' C# proxy generator T4 template		*
+ * ---------------------------------------------------------------------------- */
+
+namespace TestLibrary.Proxies
+{
+	public class HelperWrapper : System.Object, IHelperWrapper
+	{
+		//private TestLibrary.Helper Inner;
+
+		internal TestLibrary.Helper Inner { get; }
+
+
+
+		#region Static Methods
+		public static void Helper1()
+		{
+			TestLibrary.Helper.Helper1();
+		}
+		#endregion
+
+
+	}
+
+	public interface IHelperWrapper
+	{
+
+	}
+
+	public interface IHelperWrapperFactory
+	{
+		IHelperWrapper Create(params object[] args);
+	}
+
+	public interface IStaticHelperWrapper
+	{
+		#region Methods
+		void Helper1();
+		#endregion
+	}
+
+	public class HelperWrapperFactory : IHelperWrapperFactory
+	{
+		public virtual IHelperWrapper Create(params object[] args)
+		{
+			return (IHelperWrapper)System.Activator.CreateInstance(typeof(HelperWrapper), args);
+		}
+
+	}
+}
 // TestLibrary.Interface1
 /* ---------------------------------------------------------------------------- *
  *		The code is generated by 'T4Wrap' C# proxy generator T4 template		*
@@ -349,20 +438,28 @@ namespace TestLibrary.Proxies
 	public interface Interface1Wrapper 
 	{
 		#region Properties
-		System.String this[System.Int32 i] { get; set; }
-		System.String this[System.Int32 i, System.Int32 j] { get; set; }
-		System.String ReadWrite { get; set; }
-		System.String Read { get; }
+		string this[int i] { get; set; }
+		string this[int i, int j] { get; set; }
+		string ReadWrite { get; set; }
+		string Read { get; }
 		#endregion
 		#region Methods
 		void Method1();
-		void Method2(System.String str);
-		void Method3([TestLibrary.Attribute] System.String str);
-		void Method4([TestLibrary.Attribute] ref System.String str);
-		void Method5([System.Runtime.InteropServices.Out, TestLibrary.Attribute] out System.String str);
+		void Method2(string str);
+		void Method3([TestLibrary.Attribute] string str);
+		void Method4([TestLibrary.Attribute] ref string str);
+		void Method5([TestLibrary.Attribute] out string str);
+		void Method6([TestLibrary.Attribute] string str, bool isBool);
+		void Method7([TestLibrary.Attribute] string str, bool isBool = true);
 		#endregion
 	}
+
+	public interface IStaticInterface1Wrapper
+	{
+
+	}
 }
+
 
 // TestLibrary.AttributeAttribute
 /* ---------------------------------------------------------------------------- *
@@ -371,7 +468,7 @@ namespace TestLibrary.Proxies
 
 namespace TestLibrary.Proxies
 {
-	public class AttributeAttributeWrapper : System.Attribute, IAttributeAttributeWrapper, System.Runtime.InteropServices._Attribute
+	public class AttributeAttributeWrapper : System.Attribute, IAttributeAttributeWrapper
 	{
 		//private TestLibrary.AttributeAttribute Inner;
 
@@ -385,24 +482,8 @@ namespace TestLibrary.Proxies
 		#endregion
 
 
-		#region System.Runtime.InteropServices._Attribute Members
-		void System.Runtime.InteropServices._Attribute.GetTypeInfoCount(out System.UInt32 pcTInfo)
-		{
-			((System.Runtime.InteropServices._Attribute)Inner).GetTypeInfoCount(out pcTInfo);
-		}
-		void System.Runtime.InteropServices._Attribute.GetTypeInfo(System.UInt32 iTInfo, System.UInt32 lcid, System.IntPtr ppTInfo)
-		{
-			((System.Runtime.InteropServices._Attribute)Inner).GetTypeInfo(iTInfo, lcid, ppTInfo);
-		}
-		void System.Runtime.InteropServices._Attribute.GetIDsOfNames(ref System.Guid riid, System.IntPtr rgszNames, System.UInt32 cNames, System.UInt32 lcid, System.IntPtr rgDispId)
-		{
-			((System.Runtime.InteropServices._Attribute)Inner).GetIDsOfNames(ref riid, rgszNames, cNames, lcid, rgDispId);
-		}
-		void System.Runtime.InteropServices._Attribute.Invoke(System.UInt32 dispIdMember, ref System.Guid riid, System.UInt32 lcid, System.Int16 wFlags, System.IntPtr pDispParams, System.IntPtr pVarResult, System.IntPtr pExcepInfo, System.IntPtr puArgErr)
-		{
-			((System.Runtime.InteropServices._Attribute)Inner).Invoke(dispIdMember, ref riid, lcid, wFlags, pDispParams, pVarResult, pExcepInfo, puArgErr);
-		}
-		#endregion
+
+
 	}
 
 	public interface IAttributeAttributeWrapper
@@ -415,6 +496,7 @@ namespace TestLibrary.Proxies
 		IAttributeAttributeWrapper Create(params object[] args);
 		IAttributeAttributeWrapper Create();
 	}
+
 
 	public class AttributeAttributeWrapperFactory : IAttributeAttributeWrapperFactory
 	{
