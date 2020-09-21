@@ -298,7 +298,6 @@ hasFieldAttributes = new Func<FieldInfo, bool>(f => {
 	
 
 writeParamType = new Func<ParameterInfo, string>(p => {		
-	var prefix = String.Empty;	
 	var str = new StringBuilder();
 	var type = p.ParameterType;
 	var isParams = CustomAttributeData.GetCustomAttributes(p).Any(a => a is ParamArrayAttribute);
@@ -317,8 +316,9 @@ writeParamType = new Func<ParameterInfo, string>(p => {
 });
 
 writeParamName = new Func<ParameterInfo, string>(p => {
-	var prefix = getArgPrefix(p);
-	var argRep = prefix + p.Name;
-	return argRep;
+	var str = new StringBuilder();
+	str.Append(getArgPrefix(p));
+	str.Append(p.Name);
+	return str.ToString();
 });
 #>
