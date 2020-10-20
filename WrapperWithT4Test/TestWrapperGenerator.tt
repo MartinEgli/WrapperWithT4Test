@@ -14,13 +14,9 @@
 <#@ import namespace="System.Text.RegularExpressions" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#@ import namespace="System.Reflection" #>
-
-
-
 <# 
 //var targetType = assembly.GetType("Siemens.Sinumerik.Operate.Services.AlarmSvc");
 
-//var targetProxySuffix = "Proxy";
 var targetProxySuffix = "Wrapper";
 var wrappedInstance = "Inner";
 var manager = new Manager(Host, GenerationEnvironment, true) { OutputPath = Path.GetDirectoryName(Host.TemplateFile) }; #>
@@ -34,40 +30,29 @@ var sourceTypes = assembly.GetTypes(); #>
 <#@ include file="T4Scripts\ElementCreatorHelper.t4" #>
 <#
 
-
-
-
 var targetProxyNamespace = (sourceTypes.First().Namespace + ".Proxies");
-foreach (var targetType in sourceTypes)
-{
-	typeMapDictionary.Add(targetType, getProxyTypeShortName(targetType));				
-}
+addTypesToMap(sourceTypes, targetProxySuffix);
 
 foreach (var targetType in sourceTypes)
 {
 #>
 // <#=targetType #>
 <#
-
-
-
 /* --------------------------------- SELECTORS --------------------------------- */
-var proxyTypeShortName = getProxyTypeShortName(targetType);
+var proxyTypeShortName = getProxyTypeShortName(targetType, targetProxySuffix);
 
-var ctorInfos = targetType.GetConstructors(BindingFlags.Instance|BindingFlags.Public|BindingFlags.DeclaredOnly);
-var eventInfos = targetType.GetEvents(BindingFlags.Instance|BindingFlags.Public|BindingFlags.DeclaredOnly);
-var propertyInfos = targetType.GetProperties(BindingFlags.Instance|BindingFlags.Public|BindingFlags.DeclaredOnly);
-var methodInfos = targetType.GetMethods(BindingFlags.Instance|BindingFlags.Public|BindingFlags.DeclaredOnly).Where(m => !m.IsSpecialName).ToArray();
+var ctorInfos = getConstructors(targetType);
+var eventInfos = getEvents(targetType);
+var propertyInfos = getProperties(targetType);
+var methodInfos =getMethods(targetType);
 
-var staticEventInfos = targetType.GetEvents(BindingFlags.Static|BindingFlags.Public|BindingFlags.DeclaredOnly).Where(m => !m.IsSpecialName).ToArray();
-var staticPropertyInfos = targetType.GetProperties(BindingFlags.Static|BindingFlags.Public|BindingFlags.DeclaredOnly).Where(m => !m.IsSpecialName).ToArray();
-var staticMethodInfos = targetType.GetMethods(BindingFlags.Static|BindingFlags.Public|BindingFlags.DeclaredOnly).Where(m => !m.IsSpecialName).ToArray();
+var staticEventInfos = getStaticEvents(targetType);
+var staticPropertyInfos = getStaticProperties(targetType);
+var staticMethodInfos = getStaticMethods(targetType);
 
 var interfaces = filterInterfaces(targetType.GetInterfaces());
 var baseClass = targetType.BaseType;
-var ifaceEvents = new Func<Type, EventInfo[]>(i => i.GetEvents(BindingFlags.Instance|BindingFlags.Public|BindingFlags.DeclaredOnly));
-var ifaceProperties = new Func<Type, PropertyInfo[]>(i => i.GetProperties(BindingFlags.Instance|BindingFlags.Public|BindingFlags.DeclaredOnly));
-var ifaceMethods = new Func<Type, MethodInfo[]>(i => i.GetMethods(BindingFlags.Instance|BindingFlags.Public|BindingFlags.DeclaredOnly).Where(m => !m.IsSpecialName).ToArray());
+
 #>
 <#	if (targetType.IsInterface)
 	{#>
@@ -76,6 +61,10 @@ var ifaceMethods = new Func<Type, MethodInfo[]>(i => i.GetMethods(BindingFlags.I
 	else if(targetType.IsEnum)
 		{#>
 <#@ include file="T4Scripts\EnumWrapperHelper.t4" #>
+<#	}
+	else if(targetType.IsSubclassOf(typeof(Delegate)))
+		{#>
+<#@ include file="T4Scripts\DelegateWrapperHelper.t4" #>
 <#	}
 	else
 	{#>

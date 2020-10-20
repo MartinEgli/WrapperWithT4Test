@@ -1,0 +1,15 @@
+﻿	public class <#=proxyTypeShortName#>Factory : I<#=proxyTypeShortName#>Factory
+	{
+		public virtual I<#=proxyTypeShortName#> Create(params object[] args)
+		{
+			return (I<#=proxyTypeShortName#>)System.Activator.CreateInstance(typeof(<#=proxyTypeShortName#>), args);
+		}
+
+<#foreach(var ctorInfo in ctorInfos) {#>
+<#	var args = ctorInfo.GetParameters();#>
+		public virtual I<#=proxyTypeShortName#> Create(<#=String.Join(", ",args.Select(a => String.Format("{0} {1}", writeType(a.ParameterType), a.Name)))#>)
+		{
+			return new <#=proxyTypeShortName#>(<#=String.Join(", ",args.Select(a => String.Format("{0}", a.Name)))#>); 
+		}
+<#}#>
+	}

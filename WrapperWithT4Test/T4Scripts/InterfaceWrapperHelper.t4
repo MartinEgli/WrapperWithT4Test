@@ -10,6 +10,7 @@ namespace <#=targetProxyNamespace#>
 <#if (eventInfos.Any()) {#>
 		#region Events
 <#	foreach(var eventInfo in eventInfos) {#>
+		<#=writeInterfaceEvent(eventInfo)#>
 		event <#=writeWrapperType(eventInfo.EventHandlerType)#> <#=eventInfo.Name#>;
 <#	}#>
 		#endregion

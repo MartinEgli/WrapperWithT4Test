@@ -1,412 +1,88 @@
-﻿<#
+﻿<#@ assembly name="$(TargetPath)" #>
+<#@ import namespace="WrapperWithT4Test.T4Scripts" #>
+<#
 /* ---------------------------------- HELPERS ---------------------------------- */
-
-var isVoid = new Func<Type, bool>(t => Object.ReferenceEquals(t, typeof(void)));
-var canonicalNamePattern = new Regex(@"^([^`]+)`?.*$", RegexOptions.Compiled|RegexOptions.IgnoreCase);
-var getCanonicalName = new Func<Type, string>(t => canonicalNamePattern.Match(t.FullName).Groups[1].Value);
-var getProxyTypeShortName = new Func<Type, string>(t => getCanonicalName(t).Split('.').Last() + targetProxySuffix);
-
-var typeMapDictionary= new Dictionary<Type, string>();
-
+Func<Type, bool> isVoid = T4Helpers.IsVoid;
+Regex canonicalNamePattern = T4Helpers.CanonicalNamePattern;
+Func<Type, string> getCanonicalName =  T4Helpers.GetCanonicalName;
+Func<Type, string, string> getProxyTypeShortName = T4Helpers.GetProxyTypeShortName;
 
 /* ---------------------------------- WRITERS ----------------------------------- */
-Func<Type, string> writeGeneric = null;
-Func<Type, string> writeArray = null;
-Func<Type, string> writeType = null;
-Func<Type, string> writeTypeAttributes = null;
-Func<FieldInfo, string> writeFieldAttributes = null;
-Func<Type, bool> hasTypeAttributes = null;
-Func<FieldInfo, bool> hasFieldAttributes = null;
-Func<Type, string> writeWrapperType = null;
-Func<object, string> writeUnsafe = null;
-Func<MethodInfo, string, string> writeMethod = null;
-Func<MethodInfo, string, string> writeStaticMethod = null;
-Func<ParameterInfo, string> getArgPrefix = null;
-Func<ParameterInfo, string> writeParamType = null; 
-Func<ParameterInfo, string> writeParamName = null; 
-Func<ParameterInfo[], string> writeMethodeParameters = null;
-Func<ParameterInfo, string> writeMethodeParameter = null;
-Func<MethodInfo, string> writeMethodSignature = null;
-Func<CustomAttributeData[], string> writeParameterAttributes = null;
-Func<CustomAttributeData, string> writeParameterAttribute = null;
-Func<MethodInfo, string> writeInterfaceMethod = null;
-Func<PropertyInfo, string> writeInterfaceProperty = null;
-Func<PropertyInfo, string> writeInterfaceIndexer = null; 
-Func<PropertyInfo, string> writeWrapperIndexer = null; 
-Func<IList<CustomAttributeData>, IList<CustomAttributeData>> filterAttributes = null;
-Func<Type[], Type[]> filterInterfaces = null;
-			   
-writeWrapperType = new Func<Type, string>(t => {
-	var str = new StringBuilder();
+Func<Type, ConstructorInfo[]> getConstructors = T4Helpers.GetConstructorInfos;
+Func<Type, EventInfo[]> getEvents = T4Helpers.GetEventInfos;
+Func<Type, PropertyInfo[]> getProperties = T4Helpers.GetPropertyInfos;
+Func<Type, MethodInfo[]> getMethods = T4Helpers.GetMethodInfos;
 
-	if (isVoid(t)) 
-		str.Append("void");
-	else if (typeMapDictionary.ContainsKey(t))
-		str.Append(typeMapDictionary[t]);
-	else 
-		str.Append(writeType(t));
-		
-	return str.ToString();
-});
+Func<Type, EventInfo[]> getStaticEvents = T4Helpers.GetStaticEventInfos;
+Func<Type, PropertyInfo[]> getStaticProperties = T4Helpers.GetStaticPropertyInfos;
+Func<Type, MethodInfo[]> getStaticMethods = T4Helpers.GetStaticMethodInfos;
 
-writeGeneric = new Func<Type, string>(t => {
-	var str = new StringBuilder();
-	str.Append(getCanonicalName(t));
-	str.Append("<");
-	str.Append(t.GenericTypeArguments.Select(a => String.Join(", ", writeType(a))));
-	str.Append(">");
-	return str.ToString();
-});
+Func<Type, EventInfo[]> getInterfaceEvents = T4Helpers.GetInterfaceEventInfos;
+Func<Type, PropertyInfo[]> getInterfaceProperties = T4Helpers.GetInterfacePropertyInfos;
+Func<Type, MethodInfo[]> getInterfaceMethods = T4Helpers.GetInterfaceMethodInfos;
 
-writeArray = new Func<Type, string>(t => {
-	var str = new StringBuilder();
-	var type = t;
-	var depth = 1;
-	while ((type = type.GetElementType()) != null && type.IsArray)
-	{
-		depth++;
-	}
-		
-	str.Append(writeType(type));
+Func<Type[], Type[]> filterInterfaces = T4Helpers.FilterInterfaces;
+Func<Type, bool> hasTypeAttributes = T4Helpers.HasTypeAttributes;
+Func<Type, string> writeArray = T4Helpers.WriteArray;
+Func<Type, string, string> writeDelegate = T4Helpers.WriteDelegate;
+Func<Type, string> writeGeneric = T4Helpers.WriteGeneric;
+Func<Type, string> writeType = T4Helpers.WriteType;
+Func<Type, string> writeTypeAttributes = T4Helpers.WriteTypeAttributes;
+Func<object, string> writeUnsafe = T4Helpers.WriteUnsafe;
+Func<Type, string> writeWrapperType = T4Helpers.WriteWrapperType;
 
-	while (depth-- > 0) 
-	{				
-		str.Append("[]");
-	}
-	return str.ToString();
-});
+Action<Type[], string> addTypesToMap	= T4Helpers.AddTypesToMap;
+Func<IList<CustomAttributeData>, IList<CustomAttributeData>> filterAttributes = T4Helpers.FilterAttributes;
 
-writeType = new Func<Type, string>(t => {
-	var str = new StringBuilder();
+Func<EventInfo, string, string> writeInterfaceEventSignature = T4Helpers.WriteInterfaceEventSignature;
+Func<EventInfo, string> writeEventSignature = T4Helpers.WriteEventSignature;
+Func<EventInfo, string> writeInterfaceEvent = T4Helpers.WriteInterfaceEvent;
+Func<EventInfo, string, string> writeEventWrapperSubscription = T4Helpers.WriteEventWrapperSubscription;
 
-	if (isVoid(t)) 
-		str.Append("void");
-	else if (t == typeof(bool))
-		str.Append("bool");
-	else if (t == typeof(string))
-		str.Append("string");
-	else if (t == typeof(int))
-		str.Append("int");
-	else if (t == typeof(long))
-		str.Append("long");
-	else if (t == typeof(short))
-		str.Append("short");
-	else if (t == typeof(float))
-		str.Append("float");
-	else if (t == typeof(double))
-		str.Append("double");
-	else if (t == typeof(uint))
-		str.Append("uint");
-	else if (t == typeof(ushort))
-		str.Append("ushort");
-	else if (t == typeof(ulong))
-		str.Append("ulong");
-	else if (t == typeof(byte))
-		str.Append("byte");
-	else if (t == typeof(char))
-		str.Append("char");
-	else if (t == typeof(decimal))
-		str.Append("decimal");
-	else if (t == typeof(Enum))
-		str.Append("enum");
-	else if (t == typeof(sbyte))
-		str.Append("sbyte");
-	//else if (t == typeof(struct))
-		//str.Append("struct");
-	else if (t == typeof(short))
-		str.Append("short");
-	else if (t.IsArray)
-		str.Append(writeArray(t));
-	else if (t.IsGenericType) 
-		str.Append(writeGeneric(t));			
-	else
-		str.Append(t.FullName);
+Func<FieldInfo, string> writeFieldAttributes = T4Helpers.WriteFieldAttributes;
+Func<FieldInfo, bool> hasFieldAttributes = T4Helpers.HasFieldAttributes;
 
-	if (t.IsNested)
-	{
-		str.Append(".");
-		str.Append(t.Name);
-	}
-	return str.ToString();
-});
+Func<ConstructorInfo, string, string> writeInstanceDefiniton = T4Helpers.WriteInstanceDefinition;
+Func<ConstructorInfo, string, string> writeConstructorSignature = T4Helpers.WriteConstructorSignature;
 
-writeUnsafe = new Func<object, string>(o => {			
-	var usafe = false;
-	if (o is ConstructorInfo)	
-		usafe = ((ConstructorInfo)o).GetParameters().Any(p => p.ParameterType.IsPointer);	
+Func<MethodInfo, string> writeInterfaceMethod = T4Helpers.WriteInterfaceMethod;
+Func<MethodInfo, string, string, string> writeInterfaceMethodBody = T4Helpers.WriteInterfaceMethodBody;
+Func<MethodInfo, string, string> writeMethod = T4Helpers.WriteMethod;
+Func<MethodInfo, string> writeMethodSignature = T4Helpers.WriteMethodSignature;
+Func<MethodInfo, string, string> writeStaticMethod = T4Helpers.WriteStaticMethod;
+Func<MethodInfo, string, string> writeInterfaceMethodSignature = T4Helpers.WriteInterfaceMethodSignature;
 
-	else if (o is PropertyInfo)
-		usafe = ((PropertyInfo)o).PropertyType.IsPointer;
-		
-	else if (o is MethodInfo)
-		usafe = ((MethodInfo)o).GetParameters().Any(p => p.ParameterType.IsPointer) ||
-				((MethodInfo)o).ReturnType.IsPointer;	
-	
-	return usafe ? "unsafe " : String.Empty;
-});
+Func<CustomAttributeData, string> writeParameterAttribute = T4Helpers.WriteParameterAttribute;
+Func<CustomAttributeData[], string> writeParameterAttributes = T4Helpers.WriteParameterAttributes;
 
-writeMethod = new Func<MethodInfo, string, string>((m, source) => {		
-	var str = new StringBuilder();
-	var parameters = m.GetParameters();
-	if (!isVoid(m.ReturnParameter.ParameterType)) 
-	{
-		str.Append("return ");
-	}
-	str.Append(source);
-	str.Append(".");
-	str.Append(m.Name);
-	str.Append("(");
-	str.Append(String.Join(", ", parameters.Select(a => writeParamName(a))));
-	str.Append(");");
-	return str.ToString();
-});
+Func<ParameterInfo, string> writeParamName = T4Helpers.WriteParamName;
+Func<ParameterInfo, string> writeParamType = T4Helpers.WriteParamType;
+Func<ParameterInfo, string> writeMethodeParameter = T4Helpers.WriteMethodParameter;
+Func<ParameterInfo[], string> writeMethodeParameters = T4Helpers.WriteMethodParameters;
+Func<ParameterInfo, string> getArgPrefix = T4Helpers.GetArgPrefix;
 
-writeStaticMethod = new Func<MethodInfo, string, string>((m, source) => {		
-	var str = new StringBuilder();
-	var parameters = m.GetParameters();
-	if (!isVoid(m.ReturnParameter.ParameterType)) 
-	{
-		str.Append("return ");
-	}
-	str.Append(source);
-	str.Append(".");
-	str.Append(m.Name);
-	str.Append("(");
-	str.Append(String.Join(", ", parameters.Select(a => writeParamName(a))));
-	str.Append(");");
-	return str.ToString();
-});
+Func<PropertyInfo, bool> hasPropertyGetter = T4Helpers.HasPropertyGetter;
+Func<PropertyInfo, bool> hasPropertySetter = T4Helpers.HasPropertySetter;
 
-getArgPrefix = new Func<ParameterInfo, string>(p => { 
-	if (p.ParameterType.IsByRef && p.IsOut)
-		return "out ";
-	if (p.ParameterType.IsByRef)
-		return "ref ";
-	return String.Empty;
-});
+Func<PropertyInfo, string> writeInterfaceIndexer = T4Helpers.WriteInterfaceIndexer;
+Func<PropertyInfo, string> writePropertyIndexerHead = T4Helpers.WritePropertyIndexerHead;
+Func<PropertyInfo, string, string> writePropertyIndexerGetter = T4Helpers.WritePropertyIndexerGetter;
+Func<PropertyInfo, string, string> writePropertyIndexerSetter = T4Helpers.WritePropertyIndexerSetter;
 
-writeTypeAttributes = new Func<Type, string>(t => {
-	var attributes = CustomAttributeData.GetCustomAttributes(t);
-	var list = filterAttributes(attributes);
-	if (list.Any()){
-		return String.Format("[{0}] ", String.Join(", ", list.Select(a => a.AttributeType.ToString())
-						.Select(s => s.EndsWith("Attribute")?s.Substring(0, s.LastIndexOf("Attribute")):s)));
-	}
-	return "";
-});
+Func<PropertyInfo, string, string> writeInterfacPropertyIndexerHead = T4Helpers.WriteInterfacePropertyIndexerHead;
+Func<PropertyInfo, string, string, string> writeInterfacePropertyIndexerSetter = T4Helpers.WriteInterfacePropertyIndexerSetter;
+Func<PropertyInfo, string, string, string> writeInterfacePropertyIndexerGetter = T4Helpers.WriteInterfacePropertyIndexerGetter;
 
-hasTypeAttributes = new Func<Type, bool>(t => {
-	var attributes = CustomAttributeData.GetCustomAttributes(t);
-	var list = filterAttributes(attributes);
-	return list.Any();
-});
+Func<PropertyInfo, string> writeInterfaceProperty = T4Helpers.WriteInterfaceProperty;
 
-writeFieldAttributes = new Func<FieldInfo, string>(f => {
-	var attributes = CustomAttributeData.GetCustomAttributes(f);
-	var list = filterAttributes(attributes);
-	if (list.Any()){
-		return String.Format("[{0}] ", String.Join(", ", list.Select(a => a.AttributeType.ToString())
-						.Select(s => s.EndsWith("Attribute")?s.Substring(0, s.LastIndexOf("Attribute")):s)));
-	}
-	return "";
-});
+Func<PropertyInfo, string> writePropertyHead = T4Helpers.WritePropertyHead;
+Func<PropertyInfo, string, string> writePropertyGetter = T4Helpers.WritePropertyGetter;
+Func<PropertyInfo, string, string> writePropertySetter = T4Helpers.WritePropertySetter;
 
-writeInterfaceProperty = new Func<PropertyInfo, string>(p => {
-	var str = new StringBuilder();
-	str.Append(writeUnsafe(p));
-	str.Append(writeWrapperType(p.PropertyType));
-	str.Append(" ");
-	str.Append(p.Name);
-	str.Append(" {");
-	if (p.CanRead) 
-	{
-		str.Append(" get;");
-	}
-	var m = p.GetSetMethod();
-	if (m != null && m.IsPublic) 
-	{
-		str.Append(" set;");
-	}
-	str.Append(" }");
-	return str.ToString();
-});
+Func<PropertyInfo, string, string> writeInterfacePropertyHead = T4Helpers.WriteInterfacePropertyHead;
+Func<PropertyInfo, string, string, string> writeInterfacePropertyGetter = T4Helpers.WriteInterfacePropertyGetter;
+Func<PropertyInfo, string, string, string> writeInterfacePropertySetter = T4Helpers.WriteInterfacePropertySetter;
 
-writeInterfaceMethod = new Func<MethodInfo, string>(m => {
-	return writeMethodSignature(m) + ";";
-});
+Func<PropertyInfo, string, string> writeWrapperIndexer = T4Helpers.WriteWrapperIndexer;
 
-
-writeInterfaceIndexer = new Func<PropertyInfo, string>(propInfo => {
-	var indexers = propInfo.GetIndexParameters();		
-	var str = new StringBuilder();
-	var indexes = String.Join(", ", indexers.Select(i => i.Name));
-	str.Append(writeUnsafe(propInfo));
-	str.Append(writeWrapperType(propInfo.PropertyType));
-	str.Append(" this[");
-	str.Append(String.Join(", ", indexers.Select(i => String.Format("{0} {1}", writeWrapperType(i.ParameterType), i.Name))));
-	str.Append("]");
-	str.Append(" {");
-	if (propInfo.CanRead) 
-	{
-		str.Append(" get;");
-	}
-	var m = propInfo.GetSetMethod();
-	if(m != null && m.IsPublic) 
-	{
-		str.Append(" set;");	
-	}
-	str.Append(" }");
-	return str.ToString();
-});
-
-writeWrapperIndexer = new Func<PropertyInfo, string>(propInfo => {
-	var indexers = propInfo.GetIndexParameters();		
-	var str = new StringBuilder();
-	var indexes = String.Join(", ", indexers.Select(i => i.Name));
-	str.Append(writeUnsafe(propInfo));
-	str.Append(writeWrapperType(propInfo.PropertyType));
-	str.Append("this[");
-	str.Append(String.Join(", ", indexers.Select(i => String.Format("{0} {1}", writeWrapperType(i.ParameterType), i.Name))));
-	str.Append("]");
-	str.Append("{");
-	if (propInfo.CanRead) 
-	{
-		str.Append("get { return ");
-		str.Append(wrappedInstance);
-		str.Append("[");
-		str.Append(indexes);
-		str.Append("];");
-	}
-	var m = propInfo.GetSetMethod();
-	if(m != null && m.IsPublic) 
-	{
-		str.Append("set { ");
-		str.Append(wrappedInstance);
-		str.Append("[");
-		str.Append(indexes);
-		str.Append("] = value;");	
-	}
-	str.Append("}");
-	return str.ToString();
-});
-
-writeMethodSignature = new Func<MethodInfo, string>(m => {
-	var parameters = m.GetParameters();
-	var str = new StringBuilder();
-	str.Append(writeUnsafe(m));
-	str.Append(writeWrapperType(m.ReturnParameter.ParameterType));
-	str.Append(" ");
-	str.Append(m.Name);
-	str.Append("(");
-	str.Append(writeMethodeParameters(parameters));
-	str.Append(")");
-	return str.ToString();
-});
-
-
-writeMethodeParameters = new Func<ParameterInfo[], string>(ps => {
-	return String.Join(", ", ps.Select(p => writeMethodeParameter(p)));
-});
-
-writeMethodeParameter = new Func<ParameterInfo, string>(p => {
-	var attributes = CustomAttributeData.GetCustomAttributes(p);
-	var list = filterAttributes(attributes);
-	var str = new StringBuilder();
-	str.Append(writeUnsafe(p));
-	str.Append(writeParameterAttributes(list.ToArray()));
-	str.Append(writeParamType(p));
-	str.Append(" ");
-	str.Append(p.Name);
-	if (p.IsOptional)
-	{
-		str.Append(" = ");
-		if (p.ParameterType == typeof(bool))
-		{
-			str.Append(p.DefaultValue.ToString().ToLower());
-		}
-		else
-		{
-			str.Append(p.DefaultValue);
-		}		
-	}
-	return str.ToString();
-});
-
-writeParameterAttributes = new Func<CustomAttributeData[], string>(attributes => {
-	var str = new StringBuilder();
-	var list = filterAttributes(attributes);
-	if (list.Any()){
-		str.Append("[");
-		str.Append(String.Join(", ", list.Select(a => writeParameterAttribute(a))));
-		str.Append("] ");
-	}
-	return str.ToString();
-});
-
-writeParameterAttribute = new Func<CustomAttributeData, string>(a => {
-	var s = a.AttributeType.ToString();
-	return s.EndsWith("Attribute") ? s.Substring(0, s.LastIndexOf("Attribute")) : s;
-});
-
-//writeParameterAttribute = new Func<FieldInfo, string>(f => {
-	//var attributes = CustomAttributeData.GetCustomAttributes(f);
-	//if (attributes.Any()){
-		//return String.Format("[{0}] ", String.Join(", ", attributes.Select(a => a.AttributeType.ToString())
-						//.Select(s => s.EndsWith("Attribute")?s.Substring(0, s.LastIndexOf("Attribute")):s)));
-	//}
-	//return "";
-//});
-
-
-hasFieldAttributes = new Func<FieldInfo, bool>(f => {
-	var attributes = CustomAttributeData.GetCustomAttributes(f);
-	var list = filterAttributes(attributes);
-	return list.Any();
-});
-	
-filterAttributes = new Func<IList<CustomAttributeData>, IList<CustomAttributeData>>(attributes => {
-	var list = attributes
-		.Where(a =>	!(a.AttributeType == typeof(System.Runtime.InteropServices.OptionalAttribute)))
-		.Where(a =>	!(a.AttributeType == typeof(System.Runtime.InteropServices.OutAttribute)))
-		.Where(a =>	!(a.AttributeType == typeof(System.Runtime.InteropServices._Attribute)))
-		.ToList();
-	return list;
-});
-
-filterInterfaces = new Func<Type[], Type[]>(attributes => {
-	var list = attributes
-		.Where(a =>	!(a == typeof(System.Runtime.InteropServices._Attribute)))
-		.ToArray();
-	return list;
-});
-
-
-writeParamType = new Func<ParameterInfo, string>(p => {		
-	var str = new StringBuilder();
-	var type = p.ParameterType;
-	var isParams = CustomAttributeData.GetCustomAttributes(p).Any(a => a is ParamArrayAttribute);
-	
-	if (isParams)
-	{
-		str.Append("params ");
-	}
-	else {
-		var prefix = getArgPrefix(p);
-		if (prefix.Length > 0)
-		{
-			str.Append(prefix);
-			type = type.GetElementType();
-		}	
-	}
-		
-	str.Append(writeType(type));
-	return str.ToString();
-});
-
-writeParamName = new Func<ParameterInfo, string>(p => {
-	var str = new StringBuilder();
-	str.Append(getArgPrefix(p));
-	str.Append(p.Name);
-	return str.ToString();
-});
 #>

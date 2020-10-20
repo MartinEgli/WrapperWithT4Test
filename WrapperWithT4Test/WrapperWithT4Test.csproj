@@ -7,15 +7,29 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="T4Scripts\DelegateWrapperHelper.t4" />
+    <None Remove="T4Scripts\ElementCreatorHelper - Copy.t4" />
     <None Remove="T4Scripts\ElementCreatorHelper.t4" />
     <None Remove="T4Scripts\EnumWrapperHelper.t4" />
     <None Remove="T4Scripts\InterfaceWrapperHelper.t4" />
+    <None Remove="T4Scripts\IWrapperClass.t4" />
+    <None Remove="T4Scripts\IWrapperClassNoStatic.t4" />
+    <None Remove="T4Scripts\IWrapperFactory.t4" />
     <None Remove="T4Scripts\Manager.t4" />
+    <None Remove="T4Scripts\WrapperClass.t4" />
+    <None Remove="T4Scripts\WrapperFactory.t4" />
+    <None Remove="T4Scripts\WrapperHelper - Copy.t4" />
     <None Remove="T4Scripts\WrapperHelper.t4" />
   </ItemGroup>
 
   <ItemGroup>
     <Content Include="T4Scripts\EnumWrapperHelper.t4">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="T4Scripts\DelegateWrapperHelper.t4">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="T4Scripts\IWrapperClassNoStatic.t4">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="T4Scripts\Manager.t4">
@@ -25,6 +39,18 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="T4Scripts\InterfaceWrapperHelper.t4">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="T4Scripts\WrapperFactory.t4">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="T4Scripts\IWrapperFactory.t4">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="T4Scripts\IWrapperClass.t4">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="T4Scripts\WrapperClass.t4">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="T4Scripts\WrapperHelper.t4">
@@ -47,8 +73,8 @@
 
   <ItemGroup>
     <None Update="TestWrapperGenerator.tt">
-      <LastGenOutput>TestWrapperGenerator.cs</LastGenOutput>
       <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>TestWrapperGenerator.cs</LastGenOutput>
     </None>
     <None Update="WrapperGenerator.tt">
       <LastGenOutput>TestWrapperGenerator.cs</LastGenOutput>

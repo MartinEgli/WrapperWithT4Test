@@ -4,8 +4,7 @@
 
 namespace <#=targetProxyNamespace#>
 {
-<#@ include file="IWrapperClassNoStatic.t4" #>
-<#@ include file="WrapperClass.t4" #>
-<#@ include file="IWrapperFactory.t4" #>
-<#@ include file="WrapperFactory.t4" #>
+	public <#=writeDelegate(targetType, targetProxySuffix)#> 
+
 }
+

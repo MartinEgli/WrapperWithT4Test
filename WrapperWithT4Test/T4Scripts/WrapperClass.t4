@@ -1,0 +1,142 @@
+﻿	public class <#=proxyTypeShortName#> : <# if (baseClass != null) { #><#=writeWrapperType(baseClass)#>,<#} #> <#=String.Join(", ", new []{"I" + proxyTypeShortName}.Union(interfaces.Select(i => writeWrapperType(i))))#>
+	{
+		//private <#=writeType(targetType)#> <#=wrappedInstance#>;
+
+<#if (ctorInfos.Any()) {#>
+		internal <#=writeType(targetType)#> <#=wrappedInstance#> { get; }
+<#}#>
+
+<#if (ctorInfos.Any()) {#>
+		#region Constructors
+<#	foreach(var ctorInfo in ctorInfos) { #>
+		public <#=writeConstructorSignature(ctorInfo, proxyTypeShortName)#>
+		{
+			<#=writeInstanceDefiniton(ctorInfo, wrappedInstance)#>
+<#		foreach(var eventInfo in eventInfos) {#>
+			<#=writeEventWrapperSubscription(eventInfo, wrappedInstance)#>
+<#		}#>
+		}
+<#	}#>
+		#endregion
+<#}#>
+
+<#if (eventInfos.Any()) {#>
+		#region Events
+<#	foreach(var eventInfo in eventInfos) {#>
+		public virtual <#=writeEventSignature(eventInfo)#>;
+<#	}#>
+		#endregion
+<#}#>
+
+<#if (propertyInfos.Any()) {#>
+		#region Properties
+<#	foreach(var propInfo in propertyInfos) {#>
+<#		var indexers = propInfo.GetIndexParameters();#>
+<#		if (indexers.Length > 0) {#>
+		public virtual <#=writePropertyIndexerHead(propInfo)#>
+		{
+<#			if (hasPropertyGetter(propInfo)) {#>
+			<#=writePropertyIndexerGetter(propInfo, wrappedInstance)#>
+<#			}#>
+<#			if (hasPropertySetter(propInfo)) {#>
+			<#=writePropertyIndexerSetter(propInfo, wrappedInstance)#>
+<#			}#>
+		}
+<#		}	
+		else {#>
+		public virtual <#=writePropertyHead(propInfo)#>
+		{
+<#			if (hasPropertyGetter(propInfo)) {#>
+			<#=writePropertyGetter(propInfo, wrappedInstance)#>
+<#			}#>
+<#			if (hasPropertySetter(propInfo)) {#>
+			<#=writePropertySetter(propInfo, wrappedInstance)#>
+<#			}#>
+		}
+<#		}#>
+<#	}#>
+		#endregion
+<#}#>
+
+<#if (staticMethodInfos.Any()) {#>
+		#region Methods
+<#	foreach(var methodInfo in staticMethodInfos) {#>
+		public virtual <#=writeMethodSignature(methodInfo)#>
+		{
+			<#=writeMethod(methodInfo, writeType(targetType))#>
+		}
+<#	}#>
+		#endregion
+<#}#>
+
+<#if (methodInfos.Any()) {#>
+		#region Methods
+<#	foreach(var methodInfo in methodInfos) {#>
+		public virtual <#=writeMethodSignature(methodInfo)#>
+		{
+			<#=writeMethod(methodInfo, wrappedInstance)#>
+		}
+<#	}#>
+		#endregion
+<#}#>
+
+<#if (interfaces.Any()) {#>
+<#	foreach (var iface in interfaces) 
+	{#>
+<#		var iName = writeType(iface);
+		var iWrapperName = writeWrapperType(iface);#>
+		#region <#=iWrapperName#> Members
+<#		foreach(var eventInfo in getInterfaceEvents(iface)) 
+		{#>
+		<#=writeInterfaceEventSignature(eventInfo, iName)#>;
+		event <#=writeType(eventInfo.EventHandlerType)#> <#=iWrapperName#>.<#=eventInfo.Name#>
+		{
+			add { ((<#=iName#>)<#=wrappedInstance#>).<#=eventInfo.Name#> += value; }
+			remove { ((<#=iName#>)<#=wrappedInstance#>).<#=eventInfo.Name#> -= value; }
+		}
+<#		}#>
+
+<#		foreach(var propInfo in getInterfaceProperties(iface)) 
+		{#>
+<#			var indexers = propInfo.GetIndexParameters();#>
+<#			if (indexers.Length > 0) 
+			{#>
+		<#=writeInterfacPropertyIndexerHead(propInfo, iWrapperName)#>
+		{
+<#				if (hasPropertyGetter(propInfo)) 
+				{#>
+			<#=writeInterfacePropertyIndexerGetter(propInfo, wrappedInstance, iName)#>
+<#				}#>
+<#				if (hasPropertySetter(propInfo)) 
+				{#>
+			<#=writeInterfacePropertyIndexerSetter(propInfo, wrappedInstance, iName)#>
+<#				}#>
+		}
+<#			}	
+			else 
+			{#>
+		<#=writeInterfacePropertyHead(propInfo, iWrapperName)#>
+		{
+<#				if (hasPropertyGetter(propInfo)) 
+				{#>
+			<#=writeInterfacePropertyGetter(propInfo, wrappedInstance, iName)#>
+<#				}#>
+<#				if (hasPropertySetter(propInfo)) 
+				{#>
+			<#=writeInterfacePropertySetter(propInfo, wrappedInstance, iName)#>
+<#				}#>
+		}
+<#			}
+		}#>
+
+<#	foreach(var methodInfo in getInterfaceMethods(iface)) {#>
+		<#=writeInterfaceMethodSignature(methodInfo, iWrapperName)#>
+		{
+			<#=writeMethod(methodInfo, wrappedInstance)#>
+		}
+<#	}#>
+		#endregion
+<#	}
+}#>
+	}
+

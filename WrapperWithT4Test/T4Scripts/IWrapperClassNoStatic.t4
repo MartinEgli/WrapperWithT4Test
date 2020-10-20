@@ -1,0 +1,31 @@
+﻿	public interface I<#=proxyTypeShortName#>
+	{
+<#if (eventInfos.Concat(staticEventInfos).Any()) {#>
+		#region Events
+<#	foreach(var eventInfo in eventInfos.Concat(staticEventInfos)) {#>
+		<#=writeInterfaceEvent(eventInfo)#>
+<#	}#>
+		#endregion
+<#}#>
+
+<#if (propertyInfos.Concat(staticPropertyInfos).Any()) {#>
+		#region Properties
+<#	foreach(var propInfo in propertyInfos.Concat(staticPropertyInfos)) {#>
+<#		var indexers = propInfo.GetIndexParameters();#>
+<#		if (indexers.Any()) {#>
+		<#=writeInterfaceIndexer(propInfo)#>			
+<#		} else {
+#>		<#=writeInterfaceProperty(propInfo)#>
+<#		}#>
+<#	}#>
+		#endregion
+<#}#>
+
+<#if (methodInfos.Concat(staticMethodInfos).Any()) {#>
+		#region Methods
+<#	foreach(var methodInfo in methodInfos.Concat(staticMethodInfos)) {#>
+	 	<#=writeInterfaceMethod(methodInfo)#>
+<#	}#>
+		#endregion
+<#}#>
+	}
